@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PD2 Runewords Filter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .filters {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        input, select {
+            padding: 8px 12px;
+            border: 2px solid #ffd700;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.9);
+            color: #000;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 8px 20px;
+            background: #ffd700;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #ffed4e;
+            transform: translateY(-2px);
+        }
+        
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ffd700;
+            font-size: 18px;
+        }
+        
+        table {
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        th {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #ffd700;
+            padding: 15px;
+            text-align: left;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        th:hover {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+        }
+        
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+        }
+        
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+            color: #000;
+        }
+        
+        tr:hover {
+            background: rgba(255,215,0,0.1);
+        }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .type-helm { background: #e74c3c; color: white; }
+        .type-chest { background: #3498db; color: white; }
+        .type-shield { background: #2ecc71; color: white; }
+        .type-weapon { background: #f39c12; color: white; }
+        .type-quiver { background: #9b59b6; color: white; }
+        
+        .runes {
+            font-family: monospace;
+            color: #d35400;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚔️ Project Diablo 2 Runewords Database ⚔️</h1>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <div class="filter-item">
+                    <label for="socketFilter">Sockets:</label>
+                    <select id="socketFilter">
+                        <option value="">All</option>
+                        <option value="2">2 Sockets</option>
+                        <option value="3">3 Sockets</option>
+                        <option value="4">4 Sockets</option>
+                        <option value="5">5 Sockets</option>
+                        <option value="6">6 Sockets</option>
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label for="levelMin">Min Level:</label>
+                    <input type="number" id="levelMin" min="1" max="99" placeholder="1">
+                </div>
+                
+                <div class="filter-item">
+                    <label for="levelMax">Max Level:</label>
+                    <input type="number" id="levelMax" min="1" max="99" placeholder="99">
+                </div>
+                
+                <div class="filter-item">
+                    <label for="typeFilter">Type:</label>
+                    <select id="typeFilter">
+                        <option value="">All Types</option>
+                        <option value="Helm">Helms</option>
+                        <option value="Chest">Chests</option>
+                        <option value="Shield">Shields</option>
+                        <option value="Weapon">Weapons</option>
+                        <option value="Quiver">Quivers</option>
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label for="searchName">Search Name:</label>
+                    <input type="text" id="searchName" placeholder="Enter runeword name...">
+                </div>
+                
+                <div class="filter-item">
+                    <label>&nbsp;</label>
+                    <button onclick="resetFilters()">Reset Filters</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats">Showing 0 of 0 runewords</div>
+        
+        <table id="runewordTable">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('name')">Name</th>
+                    <th class="sortable" onclick="sortTable('type')">Type</th>
+                    <th class="sortable" onclick="sortTable('sockets')">Sockets</th>
+                    <th class="sortable" onclick="sortTable('level')">Required Level</th>
+                    <th>Runes</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const runewords = [
+            {name: "Nadir", type: "Helm", sockets: 2, level: 13, runes: "Nef • Tir"},
+            {name: "Radiance", type: "Helm", sockets: 3, level: 27, runes: "Nef • Sol • Ith"},
+            {name: "Lore", type: "Helm", sockets: 2, level: 27, runes: "Ort • Sol"},
+            {name: "Wisdom", type: "Helm", sockets: 3, level: 45, runes: "Pul • Ith • Eld"},
+            {name: "Delirium", type: "Helm", sockets: 3, level: 51, runes: "Lem • Ist • Io"},
+            {name: "Flickering Flame", type: "Helm", sockets: 3, level: 55, runes: "Nef • Pul • Vex"},
+            {name: "Dream", type: "Helm", sockets: 3, level: 65, runes: "Io • Jah • Pul"},
+            {name: "Ferocity", type: "Helm", sockets: 3, level: 69, runes: "Zod • Cham • Shael"},
+            {name: "Stealth", type: "Chest", sockets: 2, level: 17, runes: "Tal • Eth"},
+            {name: "Peace", type: "Chest", sockets: 3, level: 29, runes: "Shael • Thul • Amn"},
+            {name: "Myth", type: "Chest", sockets: 3, level: 25, runes: "Hel • Amn • Nef"},
+            {name: "Smoke", type: "Chest", sockets: 2, level: 37, runes: "Nef • Lum"},
+            {name: "Hustle", type: "Chest", sockets: 3, level: 39, runes: "Shael • Ko • Eld"},
+            {name: "Lionheart", type: "Chest", sockets: 3, level: 41, runes: "Hel • Lum • Fal"},
+            {name: "Treachery", type: "Chest", sockets: 3, level: 43, runes: "Shael • Thul • Lem"},
+            {name: "Wealth", type: "Chest", sockets: 3, level: 43, runes: "Lem • Ko • Tir"},
+            {name: "Enlightenment", type: "Chest", sockets: 3, level: 45, runes: "Pul • Ral • Sol"},
+            {name: "Duress", type: "Chest", sockets: 3, level: 47, runes: "Shael • Um • Thul"},
+            {name: "Stone", type: "Chest", sockets: 4, level: 47, runes: "Shael • Um • Pul • Lum"},
+            {name: "Gloom", type: "Chest", sockets: 3, level: 47, runes: "Fal • Um • Pul"},
+            {name: "Bone", type: "Chest", sockets: 3, level: 47, runes: "Sol • Um • Um"},
+            {name: "Prudence", type: "Chest", sockets: 2, level: 49, runes: "Mal • Tir"},
+            {name: "Rain", type: "Chest", sockets: 3, level: 49, runes: "Ort • Mal • Ith"},
+            {name: "Principle", type: "Chest", sockets: 3, level: 53, runes: "Ral • Gul • Eld"},
+            {name: "Fortitude", type: "Chest", sockets: 4, level: 59, runes: "El • Sol • Dol • Lo"},
+            {name: "Bramble", type: "Chest", sockets: 4, level: 61, runes: "Ral • Ohm • Sur • Eth"},
+            {name: "Dragon", type: "Chest", sockets: 3, level: 61, runes: "Sur • Lo • Sol"},
+            {name: "Chains of Honor", type: "Chest", sockets: 4, level: 63, runes: "Dol • Um • Ber • Ist"},
+            {name: "Enigma", type: "Chest", sockets: 3, level: 65, runes: "Jah • Ith • Ber"},
+            {name: "Innocence", type: "Chest", sockets: 4, level: 69, runes: "Gul • Lem • Zod • Hel"},
+            {name: "Ancients' Pledge", type: "Shield", sockets: 3, level: 21, runes: "Ral • Ort • Tal"},
+            {name: "Spirit", type: "Shield", sockets: 4, level: 25, runes: "Tal • Thul • Ort • Amn"},
+            {name: "Rhyme", type: "Shield", sockets: 2, level: 29, runes: "Shael • Eth"},
+            {name: "Splendor", type: "Shield", sockets: 2, level: 37, runes: "Eth • Lum"},
+            {name: "Sanctuary", type: "Shield", sockets: 3, level: 49, runes: "Ko • Ko • Mal"},
+            {name: "Exile", type: "Shield", sockets: 4, level: 57, runes: "Vex • Ohm • Ist • Dol"},
+            {name: "Epiphany", type: "Shield", sockets: 4, level: 59, runes: "Lo • Ith • Lo • Ist"},
+            {name: "Dream (Shield)", type: "Shield", sockets: 3, level: 65, runes: "Io • Jah • Pul"},
+            {name: "Phoenix (Shield)", type: "Shield", sockets: 4, level: 65, runes: "Vex • Vex • Lo • Jah"},
+            {name: "Shattered Wall", type: "Shield", sockets: 4, level: 69, runes: "Zod • Jah • Ral • Cham"},
+            {name: "Ancient's Scripture", type: "Quiver", sockets: 2, level: 21, runes: "Tal • Ort"},
+            {name: "Ancient's Foresight", type: "Quiver", sockets: 2, level: 23, runes: "Ral • Thul"},
+            {name: "Echo (Quiver)", type: "Quiver", sockets: 2, level: 31, runes: "Sol • Dol"},
+            {name: "Steel", type: "Weapon", sockets: 2, level: 13, runes: "Tir • El"},
+            {name: "Malice", type: "Weapon", sockets: 3, level: 15, runes: "Ith • El • Eth"},
+            {name: "Leaf", type: "Weapon", sockets: 2, level: 19, runes: "Tir • Ral"},
+            {name: "Pattern", type: "Weapon", sockets: 3, level: 21, runes: "Tal • Ort • Tir"},
+            {name: "Zephyr", type: "Weapon", sockets: 2, level: 21, runes: "Ort • Eth"},
+            {name: "Holy Thunder", type: "Weapon", sockets: 4, level: 21, runes: "Eth • Ral • Ort • Tal"},
+            {name: "Neophyte", type: "Weapon", sockets: 2, level: 23, runes: "Thul • Tir"},
+            {name: "Strength", type: "Weapon", sockets: 2, level: 25, runes: "Amn • Tir"},
+            {name: "Edge", type: "Weapon", sockets: 3, level: 25, runes: "Tir • Tal • Amn"},
+            {name: "King's Grace", type: "Weapon", sockets: 3, level: 25, runes: "Amn • Ral • Thul"},
+            {name: "Spirit (Weapon)", type: "Weapon", sockets: 4, level: 25, runes: "Tal • Thul • Ort • Amn"},
+            {name: "Purity", type: "Weapon", sockets: 3, level: 25, runes: "Amn • Eth • Thul"},
+            {name: "Insight", type: "Weapon", sockets: 4, level: 27, runes: "Ral • Tir • Tal • Sol"},
+            {name: "Honor", type: "Weapon", sockets: 5, level: 27, runes: "Amn • El • Ith • Tir • Sol"},
+            {name: "Rampage", type: "Weapon", sockets: 4, level: 29, runes: "Shael • El • Ith • Eth"},
+            {name: "Echo (Weapon)", type: "Weapon", sockets: 2, level: 31, runes: "Sol • Dol"},
+            {name: "Black", type: "Weapon", sockets: 3, level: 35, runes: "Thul • Io • Nef"},
+            {name: "White", type: "Weapon", sockets: 2, level: 35, runes: "Dol • Io"},
+            {name: "Memory", type: "Weapon", sockets: 4, level: 37, runes: "Lum • Io • Sol • Eth"},
+            {name: "Harmony", type: "Weapon", sockets: 4, level: 39, runes: "Tir • Ith • Sol • Ko"},
+            {name: "Melody", type: "Weapon", sockets: 3, level: 39, runes: "Shael • Ko • Nef"},
+            {name: "Unbending Will", type: "Weapon", sockets: 6, level: 41, runes: "Fal • Io • Ith • Eld • El • Hel"},
+            {name: "Obedience", type: "Weapon", sockets: 5, level: 41, runes: "Hel • Ko • Thul • Eth • Fal"},
+            {name: "Passion", type: "Weapon", sockets: 4, level: 43, runes: "Dol • Ort • Eld • Lem"},
+            {name: "Voice of Reason", type: "Weapon", sockets: 4, level: 43, runes: "Lem • Ko • El • Eld"},
+            {name: "Lawbringer", type: "Weapon", sockets: 3, level: 43, runes: "Amn • Lem • Ko"},
+            {name: "Loyalty", type: "Weapon", sockets: 3, level: 45, runes: "Pul • Tir • Dol"},
+            {name: "Crescent Moon", type: "Weapon", sockets: 3, level: 47, runes: "Shael • Um • Tir"},
+            {name: "Venom", type: "Weapon", sockets: 3, level: 49, runes: "Tal • Dol • Mal"},
+            {name: "Oath", type: "Weapon", sockets: 4, level: 49, runes: "Shael • Pul • Mal • Lum"},
+            {name: "Rift", type: "Weapon", sockets: 4, level: 53, runes: "Hel • Ko • Lem • Gul"},
+            {name: "Kingslayer", type: "Weapon", sockets: 4, level: 53, runes: "Mal • Um • Gul • Fal"},
+            {name: "Heart of the Oak", type: "Weapon", sockets: 4, level: 55, runes: "Ko • Vex • Pul • Thul"},
+            {name: "Silence", type: "Weapon", sockets: 6, level: 55, runes: "Dol • Eld • Hel • Ist • Tir • Vex"},
+            {name: "Death", type: "Weapon", sockets: 5, level: 55, runes: "Hel • El • Vex • Ort • Gul"},
+            {name: "Chaos", type: "Weapon", sockets: 3, level: 57, runes: "Fal • Ohm • Um"},
+            {name: "Call to Arms", type: "Weapon", sockets: 5, level: 57, runes: "Amn • Ral • Mal • Ist • Ohm"},
+            {name: "Fortitude (Weapon)", type: "Weapon", sockets: 4, level: 59, runes: "El • Sol • Dol • Lo"},
+            {name: "Grief", type: "Weapon", sockets: 5, level: 59, runes: "Eth • Tir • Lo • Mal • Ral"},
+            {name: "Wind", type: "Weapon", sockets: 2, level: 61, runes: "Sur • El"},
+            {name: "Wrath", type: "Weapon", sockets: 4, level: 63, runes: "Pul • Lum • Ber • Mal"},
+            {name: "Beast", type: "Weapon", sockets: 5, level: 63, runes: "Ber • Tir • Um • Mal • Lum"},
+            {name: "Eternity", type: "Weapon", sockets: 5, level: 63, runes: "Amn • Ber • Ist • Sol • Sur"},
+            {name: "Infinity", type: "Weapon", sockets: 4, level: 63, runes: "Ber • Mal • Ber • Ist"},
+            {name: "Fury", type: "Weapon", sockets: 3, level: 65, runes: "Jah • Gul • Eth"},
+            {name: "Famine", type: "Weapon", sockets: 4, level: 65, runes: "Fal • Ohm • Ort • Jah"},
+            {name: "Faith", type: "Weapon", sockets: 4, level: 65, runes: "Ohm • Jah • Lem • Eld"},
+            {name: "Ice", type: "Weapon", sockets: 4, level: 65, runes: "Amn • Shael • Jah • Lo"},
+            {name: "Brand", type: "Weapon", sockets: 4, level: 65, runes: "Jah • Lo • Mal • Gul"},
+            {name: "Phoenix (Weapon)", type: "Weapon", sockets: 4, level: 65, runes: "Vex • Vex • Lo • Jah"},
+            {name: "Destruction", type: "Weapon", sockets: 5, level: 65, runes: "Vex • Lo • Ber • Jah • Ko"},
+            {name: "Last Wish", type: "Weapon", sockets: 6, level: 65, runes: "Jah • Mal • Jah • Sur • Jah • Ber"},
+            {name: "Rapture", type: "Weapon", sockets: 6, level: 65, runes: "Vex • Jah • Lo • Ral • Ko • Mal"},
+            {name: "Plague", type: "Weapon", sockets: 3, level: 67, runes: "Cham • Fal • Um"},
+            {name: "Mist", type: "Weapon", sockets: 5, level: 67, runes: "Cham • Shael • Gul • Thul • Ith"},
+            {name: "Dominion", type: "Weapon", sockets: 2, level: 67, runes: "Cham • Ohm"},
+            {name: "Doom", type: "Weapon", sockets: 5, level: 67, runes: "Hel • Ohm • Um • Lo • Cham"},
+            {name: "Hand of Justice", type: "Weapon", sockets: 4, level: 67, runes: "Sur • Cham • Amn • Lo"},
+            {name: "Pride", type: "Weapon", sockets: 4, level: 67, runes: "Cham • Sur • Io • Lo"},
+            {name: "Asylum", type: "Weapon", sockets: 6, level: 67, runes: "Gul • Cham • Hel • Jah • Dol • Um"},
+            {name: "Obsession", type: "Weapon", sockets: 6, level: 69, runes: "Zod • Ist • Lem • Lum • Io • Nef"},
+            {name: "Breath of the Dying", type: "Weapon", sockets: 6, level: 69, runes: "Vex • Hel • El • Eld • Zod • Eth"},
+            {name: "Zenith", type: "Weapon", sockets: 5, level: 69, runes: "Jah • Zod • Ort • Thul • Ral"}
+        ];
+
+        let currentSort = {column: null, ascending: true};
+        let filteredData = [...runewords];
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(rw => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${rw.name}</strong></td>
+                    <td><span class="type-badge type-${rw.type.toLowerCase()}">${rw.type}</span></td>
+                    <td>${rw.sockets}</td>
+                    <td>${rw.level}</td>
+                    <td class="runes">${rw.runes}</td>
+                `;
+            });
+            
+            document.getElementById('stats').textContent = 
+                `Showing ${data.length} of ${runewords.length} runewords`;
+        }
+
+        function applyFilters() {
+            const socketFilter = document.getElementById('socketFilter').value;
+            const levelMin = document.getElementById('levelMin').value;
+            const levelMax = document.getElementById('levelMax').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const searchName = document.getElementById('searchName').value.toLowerCase();
+            
+            filteredData = runewords.filter(rw => {
+                if (socketFilter && rw.sockets != socketFilter) return false;
+                if (levelMin && rw.level < parseInt(levelMin)) return false;
+                if (levelMax && rw.level > parseInt(levelMax)) return false;
+                if (typeFilter && rw.type !== typeFilter) return false;
+                if (searchName && !rw.name.toLowerCase().includes(searchName)) return false;
+                return true;
+            });
+            
+            renderTable(filteredData);
+        }
+
+        function sortTable(column) {
+            const headers = document.querySelectorAll('th');
+            headers.forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            if (currentSort.column === column) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = column;
+                currentSort.ascending = true;
+            }
+            
+            filteredData.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+                
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+                
+                if (valA < valB) return currentSort.ascending ? -1 : 1;
+                if (valA > valB) return currentSort.ascending ? 1 : -1;
+                return 0;
+            });
+            
+            const clickedHeader = event.target;
+            clickedHeader.classList.add(currentSort.ascending ? 'sort-asc' : 'sort-desc');
+            
+            renderTable(filteredData);
+        }
+
+        function resetFilters() {
+            document.getElementById('socketFilter').value = '';
+            document.getElementById('levelMin').value = '';
+            document.getElementById('levelMax').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('searchName').value = '';
+            applyFilters();
+        }
+
+        document.getElementById('socketFilter').addEventListener('change', applyFilters);
+        document.getElementById('levelMin').addEventListener('input', applyFilters);
+        document.getElementById('levelMax').addEventListener('input', applyFilters);
+        document.getElementById('typeFilter').addEventListener('change', applyFilters);
+        document.getElementById('searchName').addEventListener('input', applyFilters);
+
+        renderTable(runewords);
+    </script>
+</body>
+</html>
