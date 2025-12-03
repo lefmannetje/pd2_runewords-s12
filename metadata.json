@@ -1,0 +1,5 @@
+{
+  "name": "Runeword Architect",
+  "description": "A comprehensive, interactive database for Diablo II runewords allowing users to filter by level, sockets, and item type.",
+  "requestFramePermissions": []
+}
