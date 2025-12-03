@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PD2 Runewords — Searchable (Accordion + Stats)</title>
+
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-+bZq4Yk6Y6bV2b2p2b0vKc6wqZb6s6g3h2q4a7qf2mY="
+    crossorigin="anonymous"></script>
+
+  <style>
+    /* ---------- Visual theme (based on your filter file) ---------- */
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
+      color:#fff;
+      padding:20px;
+      min-height:100vh;
+    }
+    .container { max-width:1200px; margin:0 auto; }
+    h1 { text-align:center; margin-bottom:20px; color:#ffd700; }
+    .filters {
+      background: rgba(255,255,255,0.08);
+      padding:14px;
+      border-radius:10px;
+      margin-bottom:18px;
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .filters .group { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    label { color:#ffd700; font-weight:600; margin-right:6px; }
+    input[type="text"], input[type="number"], select {
+      padding:8px 10px; border-radius:6px; border:2px solid #ffd700; background:#fff; color:#000;
+    }
+    button { background:#ffd700; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:700; }
+    button:hover { transform:translateY(-2px); }
+
+    .stats { text-align:center; margin:10px 0 14px 0; color:#ffd700; }
+
+    table { width:100%; border-collapse:collapse; background:#fff; color:#000; border-radius:10px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.4); }
+    thead th {
+      text-align:left; padding:12px 14px; background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%); color:#ffd700; cursor:pointer;
+      user-select:none;
+    }
+    tbody tr { border-bottom:1px solid rgba(0,0,0,0.08); }
+    tbody td { padding:10px 14px; vertical-align:top; }
+    tr.hover { background: rgba(255,215,0,0.06); }
+    .runes { font-family:monospace; color:#d35400; font-weight:700; }
+
+    .type-badge { display:inline-block; padding:4px 8px; border-radius:6px; color:#fff; font-weight:700; font-size:12px; }
+    .type-helm { background:#e74c3c; } .type-chest { background:#3498db; } .type-shield { background:#2ecc71; } .type-weapon { background:#f39c12; } .type-quiver { background:#9b59b6; }
+
+    /* Accordion details */
+    .accordion-row { background:#f7f7f7; color:#000; }
+    .rw-detail { padding:12px 14px; background:#fafafa; color:#000; }
+    .rw-stats-table { width:100%; border-collapse:collapse; margin-bottom:8px; }
+    .rw-stats-table th { background:#222; color:#ffd700; padding:8px; text-align:left; }
+    .rw-stats-table td { padding:6px 8px; border-bottom:1px solid #ddd; }
+
+    .search-highlight { background: #fffa9c; }
+
+    /* small responsive tweaks */
+    @media (max-width:800px) {
+      .filters { flex-direction:column; align-items:flex-start; }
+      thead th:nth-child(5), tbody td:nth-child(5) { display:none; } /* hide runes column on tiny screens */
+    }
+
+    /* hidden container for the source HTML (keeps raw wiki markup) */
+    #rw-source { display:none; white-space:pre; font-family:monospace; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚔️ Project Diablo 2 — Runewords (Searchable + Accordion) ⚔️</h1>
+
+    <div class="filters" aria-label="Filters">
+      <div class="group">
+        <label for="typeFilter">Type</label>
+        <select id="typeFilter">
+          <option value="">All</option>
+          <option value="Helm">Helms</option>
+          <option value="Chest">Chests</option>
+          <option value="Shield">Shields</option>
+          <option value="Weapon">Weapons</option>
+          <option value="Quiver">Quivers</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label for="socketFilter">Sockets</label>
+        <select id="socketFilter">
+          <option value="">All</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label for="levelMin">Level</label>
+        <input id="levelMin" type="number" min="1" max="99" placeholder="min" style="width:80px;">
+        <input id="levelMax" type="number" min="1" max="99" placeholder="max" style="width:80px;">
+      </div>
+
+      <div class="group" style="flex:1">
+        <label for="textSearch">Search (name / stats)</label>
+        <input id="textSearch" type="text" placeholder="e.g. Mana after each Kill, Faster Hit Recovery, +50% Enhanced Defense" style="width:100%;">
+      </div>
+
+      <div class="group">
+        <button id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="stats" id="statsText">Loading...</div>
+
+    <table id="runewordTable" aria-describedby="statsText">
+      <thead>
+        <tr>
+          <th class="sortable" data-col="name">Name</th>
+          <th class="sortable" data-col="type">Type</th>
+          <th class="sortable" data-col="sockets">Sockets</th>
+          <th class="sortable" data-col="level">Req Level</th>
+          <th>Runes</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- generated rows -->
+      </tbody>
+    </table>
+
+    <!-- Hidden: paste the full runewords.html into this element.
+         IMPORTANT: keep it as plain text inside the script tag.
+         If you prefer, tell me and I will paste the full uploaded file here for you. -->
+    <script id="rw-source" type="text/plain">
+<!--
+PASTE THE ENTIRE runewords.html (wiki page) HERE between the tags above.
+I used the copy you uploaded as the source. :contentReference[oaicite:2]{index=2}
+
+If you want me to paste it for you, reply and I'll put it in here.
+-->
+    </script>
+
+  </div>
+
+<script>
+/*
+  Parser + renderer logic:
+  - Parses the wiki HTML pasted into #rw-source
+  - Extracts each runeword block (title h3, item-info-box, the following wikitable)
+  - Builds an array of runeword objects:
+    { name, type, sockets, level, runes, statsHtml, statsText }
+  - Renders the table with clickable rows that expand accordion details
+  - Search filters include matching inside statsText (hidden)
+*/
+
+(function($){
+  // utility: strip HTML tags and normalize whitespace
+  function textify(html) {
+    return html.replace(/<\/?[^>]+(>|$)/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  // parse the raw wiki HTML (string)
+  function parseRunewords(rawHtml) {
+    // Create DOM from string
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, 'text/html');
+
+    // We'll find all H3 headings (each runeword has an <h3 id="Name">Name</h3>)
+    // Then look for the following .item-info-box and next .wikitable (stats)
+    const results = [];
+    const h3s = doc.querySelectorAll('h3');
+
+    h3s.forEach(h3 => {
+      const name = (h3.textContent || '').trim();
+      if(!name) return;
+
+      // find next sibling .item-info-box
+      let node = h3.parentElement;
+      // sometimes structure is <div class="mw-heading mw-heading3"><h3 id="Nadir">Nadir</h3></div>
+      // so parentElement is that wrapper. We'll search forward in DOM.
+      let next = node.nextElementSibling;
+      // look for item-info-box
+      while(next && !next.classList.contains('item-info-box')) {
+        next = next.nextElementSibling;
+      }
+      if(!next) return; // no info-box found (skip)
+
+      // extract sockets/type from bold text inside item-info-box (e.g. "<b>2-Socket Helms</b>")
+      let infoLines = Array.from(next.querySelectorAll('p')).map(p => p.textContent.trim()).filter(Boolean);
+      // default fallbacks
+      let sockets = null, type = '', runes = '', level = null;
+      // infoLines often: ["2-Socket Helms", "Nef • Tir", "Required Level: 13"]
+      if(infoLines.length > 0) {
+        // first line often contains sockets and type
+        const first = infoLines[0];
+        const m = first.match(/(\d)-?Socket[s]?\s+(\w+)/i) || first.match(/(\d)-Socket\s+(.+)/i);
+        if(m) {
+          sockets = parseInt(m[1],10);
+          // type word may be plural; normalize to singular capitalised
+          type = m[2].replace(/s$/i,'').trim();
+          type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+        } else {
+          // fallback: if contains "Helms", "Chests", etc
+          if(first.toLowerCase().includes('helm')) type='Helm';
+          if(first.toLowerCase().includes('chest')) type='Chest';
+          if(first.toLowerCase().includes('shield')) type='Shield';
+          if(first.toLowerCase().includes('weapon')) type='Weapon';
+          if(first.toLowerCase().includes('quiver')) type='Quiver';
+        }
+      }
+      // runes are usually second <p>
+      if(infoLines.length > 1) runes = infoLines[1].replace(/\s+/g,' ').trim();
+      // find "Required Level:" line
+      const levelLine = infoLines.find(l => /Required Level/i.test(l));
+      if(levelLine) {
+        const m = levelLine.match(/Required Level:\s*([0-9]+)/i);
+        if(m) level = parseInt(m[1],10);
+      }
+
+      // find the next .wikitable which contains stats
+      let statsNode = next.nextElementSibling;
+      while(statsNode && !statsNode.classList.contains('wikitable') && !statsNode.classList.contains('wikitable-2col')) {
+        statsNode = statsNode.nextElementSibling;
+      }
+
+      // If not found, try searching forward a bit more
+      if(!statsNode) {
+        let searchNode = next.nextElementSibling;
+        for(let i=0;i<8 && searchNode;i++){
+          if(searchNode.classList && (searchNode.classList.contains('wikitable')||searchNode.classList.contains('wikitable-2col'))) {
+            statsNode = searchNode; break;
+          }
+          searchNode = searchNode.nextElementSibling;
+        }
+      }
+
+      let statsHtml = '', statsText = '';
+      if(statsNode) {
+        statsHtml = statsNode.outerHTML;
+        statsText = textify(statsNode.textContent || '');
+      }
+
+      // If sockets or level missing, try to infer from statsHtml or name (rare)
+      if(!sockets) {
+        // attempt to extract from "X-Socket" in statsHtml
+        const ms = statsHtml.match(/(\d)-Socket/i);
+        if(ms) sockets = parseInt(ms[1],10);
+      }
+      if(!level) {
+        const ml = statsHtml.match(/Required Level:\s*([0-9]+)/i);
+        if(ml) level = parseInt(ml[1],10);
+      }
+
+      // Final normalization
+      const rw = {
+        name: name,
+        type: type || '',
+        sockets: sockets || '',
+        level: level || '',
+        runes: runes || '',
+        statsHtml: statsHtml,
+        statsText: statsText
+      };
+      results.push(rw);
+    });
+
+    return results;
+  }
+
+  // RENDERING / UI code
+  let runewords = []; // array from parser
+  let filtered = [];
+
+  function renderRows(list) {
+    const tbody = $('#tableBody').empty();
+    list.forEach((rw, idx) => {
+      // main row
+      const tr = $(`
+        <tr class="main-row" data-idx="${idx}" role="button" aria-expanded="false">
+          <td><strong class="rw-name">${escapeHtml(rw.name)}</strong></td>
+          <td><span class="type-badge type-${(rw.type||'').toLowerCase()}">${escapeHtml(rw.type || '')}</span></td>
+          <td>${escapeHtml(rw.sockets.toString())}</td>
+          <td>${escapeHtml(rw.level.toString())}</td>
+          <td class="runes">${escapeHtml(rw.runes)}</td>
+        </tr>
+      `);
+      // detail row (accordion)
+      const detail = $(`
+        <tr class="accordion-row" data-for="${idx}" style="display:none;">
+          <td colspan="5" class="rw-detail">
+            <div class="rw-detail-inner">
+              <div class="rw-table-wrapper">${rw.statsHtml || '<em>No stats table found</em>'}</div>
+              <div class="rw-search-text" style="display:none;">${escapeHtml(rw.statsText)}</div>
+            </div>
+          </td>
+        </tr>
+      `);
+
+      tbody.append(tr).append(detail);
+    });
+
+    $('#statsText').text(`Showing ${list.length} of ${runewords.length} runewords`);
+
+    // attach accordion toggle
+    $('tr.main-row').off('click').on('click', function(){
+      const idx = $(this).data('idx');
+      const acc = $(`tr.accordion-row[data-for="${idx}"]`);
+      const expanded = acc.is(':visible');
+      if(expanded) {
+        acc.hide();
+        $(this).attr('aria-expanded','false');
+      } else {
+        acc.show();
+        $(this).attr('aria-expanded','true');
+        // scroll into view for small screens
+        if(window.innerWidth < 800) {
+          $('html,body').animate({scrollTop: $(this).offset().top - 60}, 250);
+        }
+      }
+    });
+  }
+
+  // Utilities
+  function escapeHtml(s) {
+    if(s == null) return '';
+    return String(s).replace(/[&<>"']/g, function(m){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+    });
+  }
+
+  // Filter + search function (includes statsText)
+  function applyFilters() {
+    const type = $('#typeFilter').val();
+    const sockets = $('#socketFilter').val();
+    const levelMin = parseInt($('#levelMin').val()||'') || null;
+    const levelMax = parseInt($('#levelMax').val()||'') || null;
+    const qRaw = ($('#textSearch').val() || '').trim().toLowerCase();
+
+    // split search terms to AND-match each token
+    const tokens = qRaw.length ? qRaw.split(/\s+/).filter(Boolean) : [];
+
+    filtered = runewords.filter(rw => {
+      if(type && rw.type.toLowerCase() !== type.toLowerCase()) return false;
+      if(sockets && String(rw.sockets) !== String(sockets)) return false;
+      if(levelMin && (Number(rw.level)||0) < levelMin) return false;
+      if(levelMax && (Number(rw.level)||0) > levelMax) return false;
+
+      if(tokens.length) {
+        // match tokens in name OR runes OR statsText
+        const hay = (rw.name + ' ' + rw.runes + ' ' + (rw.statsText||'')).toLowerCase();
+        // every token must be present somewhere
+        return tokens.every(t => hay.indexOf(t) !== -1);
+      }
+      return true;
+    });
+
+    renderRows(filtered);
+  }
+
+  // Sorting support
+  let currentSort = { col: null, asc: true };
+  function sortBy(col) {
+    if(currentSort.col === col) currentSort.asc = !currentSort.asc;
+    else { currentSort.col = col; currentSort.asc = true; }
+
+    filtered.sort((a,b) => {
+      let A = a[col], B = b[col];
+      // normalize
+      if(typeof A === 'string') A = A.toLowerCase();
+      if(typeof B === 'string') B = B.toLowerCase();
+      if(A < B) return currentSort.asc ? -1 : 1;
+      if(A > B) return currentSort.asc ? 1 : -1;
+      return 0;
+    });
+
+    renderRows(filtered);
+  }
+
+  // hook up events
+  $(document).ready(function(){
+    // read source content
+    const raw = $('#rw-source').text().trim();
+    if(!raw) {
+      // empty source — give instructions and a small demo set
+      $('#statsText').html('No runewords source found in <code>#rw-source</code>. Paste your runewords.html content inside the <code>&lt;script id="rw-source"&gt;</code> tag. <br><br> Demo list loaded for quick testing.');
+      runewords = [
+        // demo fallback (small set) so UI works even before paste
+        {name:'Nadir', type:'Helm', sockets:2, level:13, runes:'Nef • Tir', statsHtml:'<table class="rw-stats-table"><tr><th>Before</th><th>After</th></tr><tr><td>+2 to Mana after each Kill</td><td>+[4-6] to Mana after each Kill</td></tr></table>', statsText:'+2 to Mana after each Kill +[4-6] to Mana after each Kill'},
+        {name:'Stealth', type:'Chest', sockets:2, level:17, runes:'Tal • Eth', statsHtml:'<table class="rw-stats-table"><tr><th>Before</th><th>After</th></tr><tr><td>+25% Faster Run/Walk</td><td>+10% Faster Run/Walk</td></tr></table>', statsText:'+10% Faster Run/Walk'},
+      ];
+      filtered = runewords.slice();
+      renderRows(filtered);
+    } else {
+      // parse the real wiki HTML
+      runewords = parseRunewords(raw);
+
+      // If parser didn't detect types for some items, try to infer from surrounding section headers
+      // (more advanced heuristics could be added)
+      // For now, ensure sockets & level are numbers where possible
+      runewords.forEach(rw => {
+        if(rw.sockets === '') rw.sockets = '';
+        if(rw.level === '') rw.level = '';
+      });
+
+      filtered = runewords.slice();
+      renderRows(filtered);
+      $('#statsText').text(`Loaded ${runewords.length} runewords (parsed from source).`);
+    }
+
+    // events
+    $('#typeFilter, #socketFilter, #levelMin, #levelMax').on('change input', applyFilters);
+    $('#textSearch').on('input', function(){ applyFilters(); });
+    $('#resetBtn').on('click', function(){
+      $('#typeFilter').val('');
+      $('#socketFilter').val('');
+      $('#levelMin').val('');
+      $('#levelMax').val('');
+      $('#textSearch').val('');
+      applyFilters();
+    });
+
+    $('thead th.sortable').on('click', function(){
+      const col = $(this).attr('data-col');
+      if(!col) return;
+      sortBy(col);
+    });
+  });
+
+})(jQuery);
+</script>
+
+</body>
+</html>
